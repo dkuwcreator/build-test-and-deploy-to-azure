@@ -1,0 +1,55 @@
+# Variables
+RESOURCE_GROUP="rg-aks-demo"
+LOCATION="westeurope"
+ACR_NAME="acraksdemouw"
+ASP_NAME="asp-aks-demo"
+AS_NAME="webapp-aks-demo"
+IMAGE_NAME="devops-container"
+
+# Azure login
+az login --use-device-code
+
+# Create resource group
+az group create --name $RESOURCE_GROUP --location $LOCATION
+
+# Create a new ACR
+az acr create --resource-group $RESOURCE_GROUP --name $ACR_NAME --sku Basic
+
+# Enable admin access to ACR
+az acr update -n $ACR_NAME --admin-enabled true
+
+# Login to ACR
+az acr login -n $ACR_NAME
+
+# Build and push image to ACR
+docker build --platform linux/amd64 --tag docker.io/$IMAGE_NAME:v1 .
+
+docker tag docker.io/$IMAGE_NAME:v1 $ACR_NAME.azurecr.io/$IMAGE_NAME:v1
+
+docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:v1
+
+# Create an app service plan
+az appservice plan create --name $ASP_NAME --resource-group $RESOURCE_GROUP --sku B1 --is-linux
+
+# Create an app service
+az webapp create --resource-group $RESOURCE_GROUP --plan $ASP_NAME --name $AS_NAME --deployment-container-image-name $ACR_NAME.azurecr.io/$IMAGE_NAME:v1
+
+# Open the web app
+az webapp browse --name $AS_NAME --resource-group $RESOURCE_GROUP
+
+# Get username and password
+ACR_USERNAME=$(az acr credential show -n $ACR_NAME --query username --output tsv)
+ACR_PASSWORD=$(az acr credential show -n $ACR_NAME --query passwords[0].value --output tsv)
+
+# Login to GitHub
+gh auth login
+
+# Show GitHub repos
+gh repo list
+
+# Set username and password in GitHub secrets
+gh secret set ACR_USERNAME --body $ACR_USERNAME --repo "dkuwcreator/build-test-and-deploy-to-azure"
+gh secret set ACR_PASSWORD --body $ACR_PASSWORD
+
+# Clean up
+az group delete --name $RESOURCE_GROUP --yes --no-wait
