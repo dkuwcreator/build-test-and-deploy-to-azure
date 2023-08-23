@@ -7,11 +7,6 @@ on:
   workflow_dispatch:
 
 env:
-  RESOURCE_GROUP: rg-aks-demo
-  LOCATION: westeurope
-  ACR_NAME: acraksdemouw
-  ASP_NAME: asp-aks-demo
-  AS_NAME: webapp-aks-demo
   TAG: v1
   SERVER: acraksdemouw.azurecr.io
   IMAGE: devops-container
